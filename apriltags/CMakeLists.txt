@@ -7,7 +7,11 @@ project(apriltags)
 find_package(catkin REQUIRED COMPONENTS cmake_modules
 )
 
-find_package(Eigen REQUIRED)
+find_package(Eigen3 QUIET)
+if(NOT Eigen_FOUND)
+  set(Eigen_INCLUDE_DIRS "${EIGEN3_INCLUDE_DIR}")
+endif()
+
 find_package(OpenCV REQUIRED)
 
 catkin_package(
@@ -23,6 +27,18 @@ include_directories(
   ${OpenCV_INCLUDE_DIRS}
   ${catkin_INCLUDE_DIRS}
 )
+
+if(ODROID_CROSS_COMPILE)
+    set(C11_COMP_FLAGS "-W -pipe -O3 -mcpu=cortex-a15.cortex-a7 -mfpu=vfpv3-d16-fp16 -mfloat-abi=hard")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${C11_COMP_FLAGS}")
+else()
+    if(JETSON_CROSS_COMPILE)
+    set(C11_COMP_FLAGS "-W -pipe -Ofast -mcpu=cortex-a57 -std=c++11 -fopenmp")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${C11_COMP_FLAGS}")
+else()
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -pipe -Ofast -std=c++11 -fopenmp")
+endif()
+endif()
 
 add_library(apriltags
   src/Edge.cc src/FloatImage.cc src/GLine2D.cc src/GLineSegment2D.cc src/Gaussian.cc src/GrayModel.cc src/Homography33.cc src/MathUtil.cc src/Quad.cc src/Segment.cc src/TagDetection.cc src/TagDetector.cc src/TagFamily.cc src/UnionFindSimple.cc

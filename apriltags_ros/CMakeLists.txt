@@ -15,15 +15,21 @@ find_package(catkin REQUIRED COMPONENTS
   message_generation
   nodelet
   std_msgs
+  tf2_ros
   cmake_modules
+  robostate_comm_msgs
 )
 
-find_package(Eigen REQUIRED)
+find_package(Eigen3 QUIET)
+if(NOT Eigen_FOUND)
+  set(Eigen_INCLUDE_DIRS "${EIGEN3_INCLUDE_DIR}")
+endif()
 
 add_message_files(
   FILES
   AprilTagDetection.msg
   AprilTagDetectionArray.msg
+  MetaPose.msg
 )
 
 generate_messages(
@@ -49,14 +55,27 @@ include_directories(
   ${catkin_INCLUDE_DIRS}
 )
 
+if(ODROID_CROSS_COMPILE)
+    set(C11_COMP_FLAGS "-W -pipe -O3 -mcpu=cortex-a15.cortex-a7 -mfpu=vfpv3-d16-fp16 -mfloat-abi=hard")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${C11_COMP_FLAGS}")
+else()
+    if(JETSON_CROSS_COMPILE)
+    set(C11_COMP_FLAGS "-W -pipe -Ofast -mcpu=cortex-a57 -std=c++11")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${C11_COMP_FLAGS}")
+else()
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -pipe -Ofast -std=c++11")
+endif()
+endif()
+
+
 add_library(apriltag_detector
   src/apriltag_detector.cpp
 )
 target_link_libraries(apriltag_detector
   ${catkin_LIBRARIES}
 )
-add_dependencies(apriltag_detector apriltags_ros_generate_messages_cpp)
-
+add_dependencies(apriltag_detector apriltags_ros_generate_messages_cpp
+                                   robostate_comm_msgs_generate_messages_cpp)
 
 add_library(apriltag_detector_nodelet src/apriltag_detector_nodelet.cpp)
 target_link_libraries(apriltag_detector_nodelet

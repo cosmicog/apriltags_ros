@@ -18,6 +18,7 @@ namespace std {
 
 namespace AprilTags {
 
+
 TagDetection::TagDetection() 
   : good(false), obsCode(), code(), id(), hammingDistance(), rotation(), p(),
     cxy(), observedPerimeter(), homography(), hxy() {
@@ -92,7 +93,7 @@ Eigen::Matrix4d TagDetection::getRelativeTransform(double tag_size, double fx, d
   imgPts.push_back(cv::Point2f(p4.first, p4.second));
 
   cv::Mat rvec, tvec;
-  cv::Matx33f cameraMatrix(
+  cv::Matx33d cameraMatrix(
                            fx, 0, px,
                            0, fy, py,
                            0,  0,  1);
@@ -107,6 +108,46 @@ Eigen::Matrix4d TagDetection::getRelativeTransform(double tag_size, double fx, d
   T.topLeftCorner(3,3) = wRo;
   T.col(3).head(3) << tvec.at<double>(0), tvec.at<double>(1), tvec.at<double>(2);
   T.row(3) << 0,0,0,1;
+
+  return T;
+}
+
+Eigen::Matrix4d TagDetection::getRelativeTransform(double tag_size, double fx, double fy, double px, double py, std::pair<float,float> *centerxy) const {
+  std::vector<cv::Point3f> objPts;
+  std::vector<cv::Point2f> imgPts;
+  double s = tag_size/2.;
+  objPts.push_back(cv::Point3f(-s,-s, 0));
+  objPts.push_back(cv::Point3f( s,-s, 0));
+  objPts.push_back(cv::Point3f( s, s, 0));
+  objPts.push_back(cv::Point3f(-s, s, 0));
+
+  std::pair<float, float> p1 = p[0];
+  std::pair<float, float> p2 = p[1];
+  std::pair<float, float> p3 = p[2];
+  std::pair<float, float> p4 = p[3];
+  imgPts.push_back(cv::Point2f(p1.first, p1.second));
+  imgPts.push_back(cv::Point2f(p2.first, p2.second));
+  imgPts.push_back(cv::Point2f(p3.first, p3.second));
+  imgPts.push_back(cv::Point2f(p4.first, p4.second));
+
+  cv::Mat rvec, tvec;
+  cv::Matx33d cameraMatrix(
+                           fx, 0, px,
+                           0, fy, py,
+                           0,  0,  1);
+  cv::Vec4f distParam(0,0,0,0); // all 0?
+  cv::solvePnP(objPts, imgPts, cameraMatrix, distParam, rvec, tvec);
+  cv::Matx33d r;
+  cv::Rodrigues(rvec, r);
+  Eigen::Matrix3d wRo;
+  wRo << r(0,0), r(0,1), r(0,2), r(1,0), r(1,1), r(1,2), r(2,0), r(2,1), r(2,2);
+
+  Eigen::Matrix4d T; 
+  T.topLeftCorner(3,3) = wRo;
+  T.col(3).head(3) << tvec.at<double>(0), tvec.at<double>(1), tvec.at<double>(2);
+  T.row(3) << 0,0,0,1;
+
+  *centerxy=cxy;
 
   return T;
 }

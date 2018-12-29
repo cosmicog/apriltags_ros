@@ -79,6 +79,9 @@ struct TagDetection {
      camera frame (z forward, x right, y down)
   */
   Eigen::Matrix4d getRelativeTransform(double tag_size, double fx, double fy,
+                                       double px, double py, std::pair<float,float> *centerxy) const;
+
+  Eigen::Matrix4d getRelativeTransform(double tag_size, double fx, double fy,
                                        double px, double py) const;
 
   //! Recover rotation matrix and translation vector of April tag relative to camera.
